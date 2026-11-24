@@ -1,5 +1,7 @@
 # RingCalc
 
+**Live:** https://ringcalc.vercel.app
+
 Webapp som regner ut hvor høye kikkertringer eller montasje en riflekikkert trenger for å klare pipe, låskasse og picatinny-skinne, og viser oppsettet visuelt.
 
 ## Funksjoner
