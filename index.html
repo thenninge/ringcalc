@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RingCalc – ringhøyde for riflekikkert</title>
+<style>
+:root{
+  --bg:#f3f2ed;--panel:#ffffff;--ink:#1c2226;--muted:#6a7276;--line:#e2e0d8;--soft:#f7f6f2;
+  --accent:#3f6b4a;--accent-soft:#e4ede5;
+  --scope:#2a3035;--scope-hi:#454e55;--steel:#7f888e;--steel-dk:#5d666c;--recv:#a3a9ad;--rail:#40474d;
+  --ring:#b36b3a;--glass:#8fb6cf;--dim:#1c2226;--cap:#6b5a8e;
+  --ok:#2e8a4b;--warn:#c58510;--bad:#c23b2b;--info:#2d6fa8;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#121518;--panel:#1b2024;--ink:#e7eaeb;--muted:#99a2a7;--line:#2b3237;--soft:#161a1d;
+    --accent:#7fb38a;--accent-soft:#22302a;
+    --scope:#59636b;--scope-hi:#7a858d;--steel:#9aa3a9;--steel-dk:#788187;--recv:#4d565c;--rail:#2c3338;
+    --ring:#c97d48;--glass:#5f8aa5;--dim:#e7eaeb;--cap:#9a88c4;
+  }
+}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{display:flex;align-items:center;gap:14px;padding:18px 28px;border-bottom:1px solid var(--line);background:var(--panel)}
+header h1{margin:0;font-size:21px;letter-spacing:.2px}
+header p{margin:0;color:var(--muted);font-size:13px}
+.wrap{display:grid;grid-template-columns:370px minmax(0,1fr);gap:20px;padding:20px 28px 40px;max-width:1500px;margin:0 auto}
+@media (max-width:980px){.wrap{grid-template-columns:1fr;padding:16px}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:16px}
+.card h2{margin:0 0 12px;font-size:15px;display:flex;align-items:center;gap:8px}
+.card h2 .n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700}
+select,input[type=number]{font:inherit;color:var(--ink);background:var(--soft);border:1px solid var(--line);border-radius:7px;padding:6px 8px;width:100%}
+select:focus,input:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}
+.f{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted)}
+.f .in{display:flex;align-items:center;gap:6px}
+.f .in em{font-style:normal;font-size:12px;color:var(--muted);min-width:22px}
+.f.full{grid-column:1/-1}
+.src{font-size:12px;color:var(--muted);margin:-4px 0 12px;padding:7px 10px;background:var(--soft);border-radius:8px;border:1px solid var(--line)}
+.derived{display:flex;gap:18px;margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);font-size:12.5px;color:var(--muted)}
+.derived b{color:var(--ink)}
+.row{display:flex;align-items:center;gap:10px}
+input[type=range]{flex:1;accent-color:var(--accent)}
+.row input[type=number]{width:78px;flex:none}
+.toggle{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);cursor:pointer;user-select:none}
+.toggle input{accent-color:var(--accent);width:16px;height:16px}
+.hint{font-size:12px;color:var(--muted);margin:4px 0 0}
+.sep{height:1px;background:var(--line);margin:12px 0}
+details.more{margin-top:12px;border-top:1px dashed var(--line);padding-top:10px}
+details.more summary{cursor:pointer;font-size:13px;font-weight:600}
+details.more .grid2{margin-top:10px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+@media (max-width:1200px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.stat .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.stat .v{font-size:30px;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums}
+.stat .v small{font-size:15px;font-weight:500;color:var(--muted);margin-left:3px}
+.stat .s{font-size:12.5px;color:var(--muted);margin-top:2px}
+.stat.main{border-color:var(--accent);box-shadow:inset 4px 0 0 var(--accent)}
+.badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600;color:#fff}
+.b-ok{background:var(--ok)}.b-warn{background:var(--warn)}.b-bad{background:var(--bad)}.b-info{background:var(--info)}
+.viewhead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+.viewhead h2{margin:0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:inherit;font-size:12.5px;background:var(--soft);color:var(--muted);border:0;padding:5px 10px;cursor:pointer}
+.seg button.on{background:var(--accent);color:#fff}
+.ctrl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+@media (max-width:760px){.ctrl{grid-template-columns:1fr}}
+.ctrl .f span{color:var(--ink);font-weight:600;font-size:12.5px}
+.ctrl .f span i{font-style:normal;font-weight:400;color:var(--muted)}
+.ctrl .opts{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
+.ctrl .opts .in{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
+.ctrl .opts .in input{width:70px}
+svg{display:block;width:100%;height:auto}
+#side{touch-action:pan-y;user-select:none}
+#side [data-drag]{cursor:ew-resize}
+.two{display:grid;grid-template-columns:minmax(300px,440px) minmax(0,1fr);gap:16px}
+@media (max-width:1200px){.two{grid-template-columns:1fr}}
+.warns{margin:0 0 10px;padding:0;list-style:none}
+.warns li{font-size:13px;padding:7px 10px;border-radius:8px;margin-bottom:6px;background:color-mix(in srgb,var(--warn) 14%,transparent);border-left:3px solid var(--warn)}
+.warns li.bad{background:color-mix(in srgb,var(--bad) 13%,transparent);border-left-color:var(--bad)}
+.warns li.ok{background:color-mix(in srgb,var(--ok) 13%,transparent);border-left-color:var(--ok)}
+.explain{font-size:13px;color:var(--ink)}
+.explain p{margin:0 0 8px}
+.explain code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background:var(--soft);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+.legend{display:flex;flex-wrap:wrap;gap:10px 16px;font-size:12px;color:var(--muted);margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.sub2{font-size:12.5px;color:var(--muted);margin:-6px 0 8px}
+details summary{cursor:pointer;font-weight:600;font-size:13px}
+/* SVG */
+.s-scope{fill:var(--scope)}.s-scope-hi{fill:var(--scope-hi)}
+.s-steel{fill:var(--steel)}.s-steel-dk{fill:var(--steel-dk)}
+.s-recv{fill:var(--recv)}.s-rail{fill:var(--rail)}.s-ring{fill:var(--ring)}.s-ring-bad{fill:var(--bad)}
+.s-cap{fill:var(--cap);stroke:var(--ink);stroke-opacity:.3;stroke-width:1}
+.s-glass{fill:var(--glass);fill-opacity:.55}
+.s-axis{stroke:var(--muted);stroke-width:1;stroke-dasharray:6 5;fill:none}
+.s-dim{stroke:var(--dim);stroke-width:1.2;fill:none}
+.s-tick{stroke:var(--muted);stroke-width:1}
+.s-txt{fill:var(--ink);font:600 12.5px system-ui,sans-serif;paint-order:stroke;stroke:var(--panel);stroke-width:4px;stroke-linejoin:round}
+.s-sub{fill:var(--muted);font:500 11.5px system-ui,sans-serif;paint-order:stroke;stroke:var(--panel);stroke-width:4px}
+.s-outline{fill:none;stroke:var(--muted);stroke-width:1;stroke-dasharray:4 3}
+.st-ok{stroke:var(--ok);fill:var(--ok)}.st-warn{stroke:var(--warn);fill:var(--warn)}.st-bad{stroke:var(--bad);fill:var(--bad)}.st-info{stroke:var(--info);fill:var(--info)}
+</style>
+</head>
+<body>
+<header>
+  <svg width="38" height="38" viewBox="0 0 40 40" aria-hidden="true" style="width:38px">
+    <circle cx="20" cy="20" r="16" fill="none" stroke="var(--accent)" stroke-width="3"/>
+    <circle cx="20" cy="20" r="9" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+    <path d="M20 2v10M20 28v10M2 20h10M28 20h10" stroke="var(--ink)" stroke-width="1.6"/>
+  </svg>
+  <div>
+    <h1>RingCalc</h1>
+    <p>Finn riktig høyde og plassering for kikkertringer, så kikkerten klarer pipe, låskasse og skinne.</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <aside>
+    <div class="card">
+      <h2><span class="n">1</span>Kikkert</h2>
+      <label class="f full" style="margin-bottom:12px"><span>Velg kikkert</span>
+        <select id="scopePreset"></select>
+      </label>
+      <div class="src" id="scopeSrc"></div>
+      <div class="grid2" id="scopeFields"></div>
+      <div class="derived">
+        <span>Rørlengde: <b id="dTube">–</b></span>
+        <span>Okularlengde: <b id="dOc">–</b></span>
+      </div>
+      <div class="sep"></div>
+      <div class="grid2">
+        <label class="f"><span>Linsedeksel, ytre Ø <i style="font-style:normal">(0 = ingen)</i></span><div class="in"><input type="number" step="0.5" min="0" max="120" data-k="capD"><em>mm</em></div></label>
+        <label class="f"><span>Linsedeksel, lengde</span><div class="in"><input type="number" step="1" min="1" max="80" data-k="capLen"><em>mm</em></div></label>
+      </div>
+      <p class="hint">Dekselet tres utenpå objektivet. Ca. ¾ av lengden ligger over objektivet og ¼ stikker fram foran.</p>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">2</span>Våpen</h2>
+      <label class="f full" style="margin-bottom:12px"><span>Velg våpen</span>
+        <select id="weaponPreset"></select>
+      </label>
+      <div class="src" id="weaponSrc"></div>
+      <div class="grid2">
+        <label class="f"><span>Pipeprofil</span>
+          <select id="profile" data-k="profile" data-w></select>
+        </label>
+        <label class="f" id="customDWrap"><span>Pipediameter</span>
+          <div class="in"><input type="number" step="0.1" min="8" max="40" data-k="Dc" data-w><em>mm</em></div>
+        </label>
+        <label class="f full"><span>Låskassegods (topp låskasse → topp pipe ved låskassen)</span>
+          <div class="row"><input type="range" min="0" max="5" step="0.5" data-k="g" data-w><input type="number" min="0" max="5" step="0.5" data-k="g" data-w></div>
+        </label>
+        <label class="toggle"><input type="checkbox" data-k="pic" data-w> Picatinny-skinne</label>
+        <label class="f" id="railWrap"><span>Skinnehøyde i forkant</span>
+          <div class="in"><input type="number" step="0.5" min="0" max="30" data-k="railH" data-w><em>mm</em></div>
+        </label>
+        <div id="tiltWrap" class="full" style="grid-column:1/-1">
+          <label class="f"><span>Helning på skinnen</span>
+            <select data-k="railTilt" data-num>
+              <option value="0">0 MOA (flat)</option><option value="3">3 MOA</option><option value="5">5 MOA</option>
+              <option value="10">10 MOA</option><option value="20">20 MOA</option>
+            </select>
+          </label>
+          <p class="hint">Høyden måles der skinnen slutter i forkant, ned til låskassen. En skråskinne er høyere bak og vipper kikkerten ned mot pipa, så objektivet får mindre klaring.</p>
+        </div>
+      </div>
+      <details class="more">
+        <summary>Flere mål på låskasse, pipe og skinne</summary>
+        <div class="grid2">
+          <label class="f"><span>Låskasselengde (topp)</span><div class="in"><input type="number" step="1" min="50" max="400" data-k="Lr" data-w><em>mm</em></div></label>
+          <label class="f"><span>Pipe Ø ved låskasse</span><div class="in"><input type="number" step="0.1" min="10" max="40" data-k="S" data-w><em>mm</em></div></label>
+          <label class="f"><span>Rett pipestykke før avsmalning</span><div class="in"><input type="number" step="1" min="0" max="800" data-k="shank" data-w><em>mm</em></div></label>
+          <label class="f"><span>Avsmalningslengde</span><div class="in"><input type="number" step="1" min="1" max="800" data-k="taper" data-w><em>mm</em></div></label>
+          <label class="f"><span>Skinnelengde</span><div class="in"><input type="number" step="1" min="20" max="500" data-k="railLen" data-w><em>mm</em></div></label>
+          <label class="f"><span>Skinne-overheng framover</span><div class="in"><input type="number" step="1" min="-200" max="200" data-k="railOver" data-w><em>mm</em></div></label>
+        </div>
+        <p class="hint">Skinnen ligger langs låskassen og kan stikke fram forbi låskassens front (overheng). Pipa er like tykk som ved låskassen i det rette stykket, og smalner så jevnt av til profildiameteren.</p>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">3</span>Beregning</h2>
+      <label class="f full"><span>Ønsket gap (pipe → kikkert)</span>
+        <div class="row"><input type="range" min="1" max="15" step="0.5" data-k="gapTarget"><input type="number" min="0.5" max="30" step="0.5" data-k="gapTarget"></div>
+      </label>
+      <p class="hint">Normalt ca. 5 mm. Gapet kan ikke være 0, da lar kikkerten seg ikke montere.</p>
+      <div class="sep"></div>
+      <label class="f" style="max-width:170px"><span>Minste klaring mot låskasse/skinne</span>
+        <div class="in"><input type="number" step="0.5" min="0.5" max="10" data-k="clr"><em>mm</em></div>
+      </label>
+    </div>
+  </aside>
+
+  <main>
+    <div class="stats">
+      <div class="stat main">
+        <div class="k">Anbefalt ringhøyde</div>
+        <div class="v"><span id="rRec">–</span><small>mm</small></div>
+        <div class="s" id="rRecSub">–</div>
+      </div>
+      <div class="stat">
+        <div class="k">Minimum ringhøyde</div>
+        <div class="v"><span id="rMin">–</span><small>mm</small></div>
+        <div class="s" id="rMinSub">–</div>
+      </div>
+      <div class="stat">
+        <div class="k">Gap til pipe</div>
+        <div class="v"><span id="rGap">–</span><small>mm</small></div>
+        <div class="s"><span id="rStatus" class="badge">–</span> <span id="rRecvClr"></span></div>
+      </div>
+      <div class="stat">
+        <div class="k">Siktehøyde</div>
+        <div class="v"><span id="rSight">–</span><small>mm</small></div>
+        <div class="s">Senter løp → senter kikkert (til ballistikkprogram)</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="viewhead">
+        <h2>Sidevisning og plassering</h2>
+        <div class="seg" id="vex">
+          <button data-v="1">Ekte skala</button><button data-v="2">2× høyde</button><button data-v="3">3× høyde</button>
+        </div>
+      </div>
+      <div class="ctrl">
+        <label class="f"><span>Ringhøyde <i>(mm)</i></span>
+          <div class="row"><input type="range" min="0" max="40" step="0.5" data-k="Hsel" id="hRange"><input type="number" min="0" max="80" step="0.5" data-k="Hsel"></div>
+        </label>
+        <label class="f"><span>Kikkert fram/bak <i>(tårnsenter, mm fra låskassefront)</i></span>
+          <div class="row"><input type="range" step="1" data-k="scopePos" id="posRange"><input type="number" step="1" data-k="scopePos"></div>
+        </label>
+        <label class="f"><span>Bakre ring <i>(mm fra låskassefront)</i></span>
+          <div class="row"><input type="range" step="1" data-k="ringR" id="rrRange"><input type="number" step="1" data-k="ringR"></div>
+        </label>
+        <label class="f"><span>Fremre ring <i>(mm fra låskassefront)</i></span>
+          <div class="row"><input type="range" step="1" data-k="ringF" id="rfRange"><input type="number" step="1" data-k="ringF"></div>
+        </label>
+        <div class="opts" style="grid-column:1/-1">
+          <label class="toggle"><input type="checkbox" data-k="follow"> Følg anbefalt høyde</label>
+          <label class="toggle"><input type="checkbox" data-k="autoRings"> Plasser ringer automatisk</label>
+          <span class="in">Ringbredde <input type="number" step="1" min="5" max="60" data-k="ringW"> mm</span>
+          <span class="in" id="ringSpan"></span>
+        </div>
+      </div>
+      <p class="sub2">0 = låskassens front. Negative tall er bakover mot okularet. Du kan også dra kikkerten og ringene direkte i tegningen.</p>
+      <svg id="side" role="img" aria-label="Sidevisning av kikkert, ringer, låskasse og pipe"></svg>
+      <div class="legend">
+        <span><i style="background:var(--scope)"></i>Kikkert</span>
+        <span><i style="background:var(--ring)"></i>Ringer</span>
+        <span><i style="background:var(--recv)"></i>Låskasse</span>
+        <span><i style="background:var(--rail)"></i>Picatinny</span>
+        <span><i style="background:var(--steel)"></i>Pipe</span>
+        <span id="capLegend"><i style="background:var(--cap)"></i>Linsedeksel</span>
+      </div>
+    </div>
+
+    <div class="two">
+      <div class="card">
+        <h2>Snitt ved trangeste punkt</h2>
+        <p class="sub2" id="frontSub"></p>
+        <svg id="front" role="img" aria-label="Snitt med mål for ringhøyde og klaring"></svg>
+      </div>
+      <div class="card">
+        <h2>Kontroller og forklaring</h2>
+        <ul class="warns" id="warns"></ul>
+        <div class="explain">
+          <p><b>Ringhøyde (H)</b> måles fra toppen av låskassen (eller toppen av picatinny-skinnen) opp til bunnen av kikkertrøret. Noen produsenter oppgir i stedet høyde til senter av røret, det tallet står under anbefalingen.</p>
+          <p><b>Slik regnes det:</b> Kikkertens underside følges millimeter for millimeter langs hele lengden. Der den er over pipa kreves ønsket gap. Der den er over låskasse eller skinne kreves minste klaring. Anbefalt høyde er det strengeste kravet, rundet opp til nærmeste 0,5 mm:</p>
+          <p><code>H ≥ klaring + r<sub>under</sub>(x) − Ø<sub>rør</sub>/2 − skinne + topp<sub>hinder</sub>(x)</code></p>
+          <p id="govern"></p>
+          <details>
+            <summary>Forutsetninger</summary>
+            <p class="hint">Bak låskassen antas det ikke å være noe hinder (kolbe, sluttstykke og bolthåndtak er ikke med). Ringene må stå på fremre eller bakre rør og helt på skinnen eller låskassen. Generiske maler og estimerte seksjonslengder er merket i kildefeltet under kikkertvalget. Mål din egen kikkert eller sjekk produsentens målskisse.</p>
+          </details>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+{
+/* ---------- Data: utvidbare lister ---------- */
+const PROFILES = {
+  straight:  { n:'Straight',   d:26 },
+  bull:      { n:'Bull',       d:22 },
+  varmint:   { n:'Varmint',    d:20 },
+  longrange: { n:'Long range', d:18 },
+  hunter:    { n:'Hunter',     d:16 },
+  custom:    { n:'Egendefinert', d:null }
+};
+
+/* Kikkerter. Alle mål i mm. grp styrer gruppen i nedtrekksmenyen, src vises som kilde. */
+const SCOPES = [
+  { id:'zc527', grp:'Produsentdata', name:'Zero Compromise ZC527 5–27×56 (36 mm)',
+    t:36, O:63, E:48.5, total:387.5, objLen:52, objTrans:96, front:45, turret:53, rear:62.5, ocTrans:4, u:2.7,
+    src:'Kilde: ZCO datablad ZC527 med målskisse. Fordeling objektiv/kon, okular-overgang og underbygg (~2,7 mm) er målt fra skissen.' },
+  { id:'k624i', grp:'Produsentdata', name:'Kahles K624i 6–24×56 (34 mm)',
+    t:34, O:62, E:43, total:405, objLen:50, objTrans:75, front:60, turret:55, rear:71, ocTrans:15, u:0,
+    src:'Kilde: Kahles/forhandlere. Totallengde 405, rør 34, objektiv Ø 62, okular Ø 43, midtrør 186 mm. Fordelingen av seksjonslengdene er estimert.' },
+  { id:'nx8432', grp:'Produsentdata', name:'Nightforce NX8 4–32×50 F1 (30 mm)',
+    t:30, O:59, E:43, total:340, objLen:45, objTrans:60, front:45, turret:45, rear:55, ocTrans:15, u:0,
+    src:'Kilde: Nightforce/forhandlere. Totallengde 340, rør 30, monteringslengde 145, objektiv Ø 59, okular Ø 43 mm. Fordelingen av seksjonslengdene er estimert.' },
+  { id:'g3940',  grp:'Generiske maler', name:'Generisk 3–9×40 (1″ rør)',        t:25.4, O:48, E:40, total:310, objLen:45, objTrans:40, front:60, turret:50, rear:45, ocTrans:25, u:0 },
+  { id:'g2515',  grp:'Generiske maler', name:'Generisk 2,5–15×50 (30 mm)',       t:30,   O:58, E:44, total:340, objLen:50, objTrans:45, front:55, turret:55, rear:45, ocTrans:30, u:0 },
+  { id:'g21256', grp:'Generiske maler', name:'Generisk 2–12×56 lys/jakt (30 mm)', t:30,  O:64, E:45, total:355, objLen:55, objTrans:50, front:50, turret:55, rear:45, ocTrans:30, u:0 },
+  { id:'g1624',  grp:'Generiske maler', name:'Generisk 1–6×24 LPVO (30 mm)',     t:30,   O:36, E:44, total:270, objLen:35, objTrans:15, front:60, turret:55, rear:40, ocTrans:25, u:0 }
+];
+
+/* Generiske våpenmaler. Legg til ekte modeller med målte verdier. */
+const WEAPONS = [
+  { id:'sauer200str', grp:'Modeller', name:'Sauer 200 STR m/ Spuhr picatinny', profile:'custom', Dc:19, g:3, S:26, pic:true, railH:15, railTilt:0, Lr:215, shank:50, taper:550, railLen:215, railOver:0,
+    src:'Kilde: Pipe Ø 19 mm i munningen (Wikipedia). Spuhr-skinne for 200 STR: lengde 215 mm, høyde 14–15 mm, finnes flat og med 6 MIL (20,6 MOA). Fra fabrikk har låskassen 11 mm svalehale. Låskasselengde, gods, Ø ved låskasse og pipekontur er estimert.' },
+  { id:'sako85cw', grp:'Modeller', name:'Sako 85 Carbon Wolf, M-låskasse (6,5×55)', profile:'hunter', Dc:16, g:2, S:26, pic:false, railH:6, railTilt:0, Lr:220, shank:30, taper:200, railLen:200, railOver:0,
+    src:'Kilde: M-låskasse med integrert konisk svalehale for Optilock, riflet lett jaktprofil (Sako). Fant ingen publiserte mål på låskasse og pipe, alle mål er estimert. Mål din egen.' },
+  { id:'rem700sa', grp:'Modeller', name:'Remington 700 short action', profile:'varmint', Dc:20, g:1.9, S:30.5, pic:false, railH:6, railTilt:0, Lr:199, shank:40, taper:150, railLen:190, railOver:0,
+    src:'Kilde: Låskasse Ø 1,350″ (34,3 mm). Lengde 7,85″ (199 mm) er fra Rem700-klonen Cadex CDX-R7. Pipe Ø 1,2″ ved låskassen er antatt, og godset regnes som konsentrisk ((34,3 − 30,5)/2). Pipekonturen varierer mellom modeller.' },
+  { id:'rem700la', grp:'Modeller', name:'Remington 700 long action', profile:'varmint', Dc:20, g:1.9, S:30.5, pic:false, railH:6, railTilt:0, Lr:221, shank:40, taper:150, railLen:210, railOver:0,
+    src:'Kilde: Låskasse Ø 1,350″ (34,3 mm). Lengde 8,70″ (221 mm) er fra Rem700-klonen Cadex CDX-R7. Pipe Ø 1,2″ ved låskassen er antatt, og godset regnes som konsentrisk. Pipekonturen varierer mellom modeller.' },
+  { id:'w-hunt', grp:'Generiske maler', name:'Generisk jaktrifle (Hunter-pipe)',  profile:'hunter',    Dc:16, g:2, S:26, pic:false, railH:6, railTilt:0, Lr:200, shank:25, taper:120, railLen:190, railOver:0 },
+  { id:'w-varm', grp:'Generiske maler', name:'Generisk semi-tung (Varmint-pipe)', profile:'varmint',   Dc:20, g:2, S:26, pic:false, railH:6, railTilt:0, Lr:200, shank:25, taper:100, railLen:190, railOver:0 },
+  { id:'w-lr',   grp:'Generiske maler', name:'Generisk presisjon m/ picatinny (Long range)', profile:'longrange', Dc:18, g:2, S:26, pic:true, railH:6, railTilt:0, Lr:210, shank:30, taper:110, railLen:230, railOver:10 },
+  { id:'w-str',  grp:'Generiske maler', name:'Generisk tung pipe (Straight)',     profile:'straight',  Dc:26, g:1, S:26, pic:false, railH:6, railTilt:0, Lr:210, shank:25, taper:100, railLen:200, railOver:0 }
+];
+const W_KEYS = ['profile','Dc','g','S','pic','railH','Lr','shank','taper','railLen','railOver'];
+
+const SCOPE_FIELDS = [
+  ['O','Objektiv Ø (ytterste)'], ['t','Rørdiameter'],
+  ['E','Okular Ø'],               ['total','Totallengde'],
+  ['objLen','Objektivlengde'],    ['objTrans','Objektiv-overgang'],
+  ['front','Fremre rør'],         ['turret','Tårnlengde'],
+  ['rear','Bakre rør'],           ['ocTrans','Okular-overgang'],
+  ['u','Tårn-underbygg']
+];
+const SCOPE_KEYS = SCOPE_FIELDS.map(f=>f[0]);
+
+/* ---------- State ---------- */
+const state = { profile:'hunter', Dc:16, g:2, S:26, pic:false, railH:6, railTilt:0, capD:0, capLen:20, Lr:200, shank:25, taper:120, railLen:190, railOver:0,
+  gapTarget:5, clr:1, follow:true, Hsel:12, vex:2, scopePos:-95, ringF:-30, ringR:-160, ringW:20, autoRings:true };
+SCOPE_KEYS.forEach(k=>state[k]=SCOPES[0][k]);
+let scopeSel = SCOPES[0].id, weaponSel = 'w-hunt';
+let sideGeom = null;
+
+/* ---------- UI ---------- */
+const $ = s => document.querySelector(s);
+const fmt = v => (Math.round(v*10)/10).toLocaleString('nb-NO',{minimumFractionDigits:1,maximumFractionDigits:1});
+const fmt0 = v => Math.round(v).toLocaleString('nb-NO');
+const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+
+$('#scopeFields').innerHTML = SCOPE_FIELDS.map(([k,l]) =>
+  `<label class="f"><span>${l}</span><div class="in"><input type="number" step="0.1" min="0" data-k="${k}" data-s><em>mm</em></div></label>`).join('');
+
+const groups = [...new Set(SCOPES.map(s=>s.grp))];
+$('#scopePreset').innerHTML = groups.map(g=>`<optgroup label="${g}">${SCOPES.filter(s=>s.grp===g).map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}</optgroup>`).join('')
+  + `<option value="custom">Egendefinert / egne mål</option>`;
+const wGroups = [...new Set(WEAPONS.map(w=>w.grp))];
+$('#weaponPreset').innerHTML = wGroups.map(g=>`<optgroup label="${g}">${WEAPONS.filter(w=>w.grp===g).map(w=>`<option value="${w.id}">${w.name}</option>`).join('')}</optgroup>`).join('')
+  + `<option value="custom">Egendefinert / egne mål</option>`;
+$('#profile').innerHTML = Object.entries(PROFILES).map(([k,p])=>`<option value="${k}">${p.n}${p.d?` (${p.d} mm)`:''}</option>`).join('');
+
+$('#scopePreset').addEventListener('change', e=>{
+  scopeSel = e.target.value;
+  const s = SCOPES.find(x=>x.id===scopeSel);
+  if (s) SCOPE_KEYS.forEach(k=>state[k]=s[k]);
+  render();
+});
+$('#weaponPreset').addEventListener('change', e=>{
+  weaponSel = e.target.value;
+  const w = WEAPONS.find(x=>x.id===weaponSel);
+  if (w) W_KEYS.forEach(k=>state[k]=w[k]);
+  render();
+});
+
+document.querySelectorAll('[data-k]').forEach(el=>{
+  const ev = el.tagName==='SELECT' || el.type==='checkbox' ? 'change' : 'input';
+  el.addEventListener(ev, ()=>{
+    const k = el.dataset.k;
+    let v;
+    if (el.type==='checkbox') v = el.checked;
+    else if (el.tagName==='SELECT') v = el.hasAttribute('data-num') ? parseFloat(el.value) : el.value;
+    else { v = parseFloat(String(el.value).replace(',','.')); if (isNaN(v)) return; }
+    state[k] = v;
+    if (el.hasAttribute('data-s')) scopeSel='custom';
+    if (el.hasAttribute('data-w')) weaponSel='custom';
+    if (k==='Hsel') state.follow = false;
+    if (k==='ringF' || k==='ringR') state.autoRings = false;
+    render(el);
+  });
+});
+document.querySelectorAll('#vex button').forEach(b=>b.addEventListener('click',()=>{state.vex=+b.dataset.v;render();}));
+
+function syncInputs(active){
+  document.querySelectorAll('[data-k]').forEach(el=>{
+    if (el===active && el.type!=='range') return;
+    const v = state[el.dataset.k];
+    if (el.type==='checkbox') el.checked = !!v;
+    else el.value = (typeof v==='number') ? Math.round(v*10)/10 : v;
+  });
+  $('#scopePreset').value = scopeSel;
+  $('#weaponPreset').value = weaponSel;
+  const sp = SCOPES.find(x=>x.id===scopeSel);
+  $('#scopeSrc').textContent = sp ? (sp.src || 'Generisk mal med omtrentlige mål. Kontroller mot din egen kikkert.') : 'Egne mål.';
+  $('#customDWrap').style.visibility = state.profile==='custom' ? 'visible' : 'hidden';
+  $('#railWrap').style.visibility = state.pic ? 'visible' : 'hidden';
+  $('#tiltWrap').style.display = state.pic ? '' : 'none';
+  const wp = WEAPONS.find(x=>x.id===weaponSel);
+  $('#weaponSrc').textContent = wp ? (wp.src || 'Generisk mal med omtrentlige mål.') : 'Egne mål.';
+  document.querySelectorAll('#vex button').forEach(b=>b.classList.toggle('on', +b.dataset.v===state.vex));
+}
+
+/* ---------- Geometri og beregning ---------- */
+const SECT = ['okularet','okular-overgangen','bakre rør','tårnpartiet','fremre rør','objektiv-konen','objektivet','linsedekselet'];
+const KIND = { barrel:'pipa', recv:'låskassen', rail:'picatinny-skinnen' };
+
+function compute(){
+  const s = state;
+  const D = s.profile==='custom' ? s.Dc : PROFILES[s.profile].d;
+  const yA = -s.g - s.S/2;
+  const ocLen = s.total - (s.objLen+s.objTrans+s.front+s.turret+s.rear+s.ocTrans);
+  const x1 = Math.max(ocLen, 5), x2 = x1+s.ocTrans, x3 = x2+s.rear, x4 = x3+s.turret, x5 = x4+s.front, x6 = x5+s.objTrans, x7 = x6+s.objLen;
+  const hasCap = s.capD > 0;
+  const capA = x7 - 0.75*s.capLen, capB = x7 + (hasCap ? 0.25*s.capLen : 0);
+  const X = {x1,x2,x3,x4,x5,x6,x7,capA,capB};
+  const tmL = (x3+x4)/2;
+  const off = s.scopePos - tmL;                         // global x = lokal x + off
+  const lerp = (a,b,f) => a + (b-a)*clamp(f,0,1);
+  const sectIdx = l => (hasCap && l>=capA && s.capD/2 > (l<x7 ? s.O/2 : 0)) || l>x7 ? 7
+    : l<x1?0 : l<x2?1 : l<x3?2 : l<x4?3 : l<x5?4 : l<x6?5 : 6;
+  const rBase = l => l<x1 ? s.E/2 : l<x2 ? lerp(s.E/2, s.t/2, (l-x1)/(s.ocTrans||1)) : l<x3 ? s.t/2 : l<x4 ? s.t/2 + s.u
+    : l<x5 ? s.t/2 : l<x6 ? lerp(s.t/2, s.O/2, (l-x5)/(s.objTrans||1)) : l<=x7 ? s.O/2 : 0;
+  const rUnder = l => { const r = rBase(l); return (hasCap && l>=capA && l<=capB) ? Math.max(r, s.capD/2) : r; };
+  const barD = x => x<s.shank ? s.S : x<s.shank+s.taper ? lerp(s.S, D, (x-s.shank)/s.taper) : D;
+  const railRear = s.railOver - s.railLen, railFront = s.railOver;
+  // Skinne: høyde måles i forkant, helning løfter bakkant. Kikkerten ligger parallelt med skinnetoppen.
+  const slope = s.pic ? Math.tan((s.railTilt||0)/60*Math.PI/180) : 0;
+  const bAt = x => s.pic ? s.railH + (railFront - x)*slope : 0;
+  const obst = x => {
+    let o = null;
+    if (s.pic && x>=railRear && x<=railFront) o = { y:bAt(x), kind:'rail' };
+    else if (x>=-s.Lr && x<=0) o = { y:0, kind:'recv' };
+    if (x>0) { const yb = yA + barD(x)/2; if (!o || yb>o.y) o = { y:yb, kind:'barrel' }; }
+    return o;
+  };
+  const lEnd = Math.max(x7, capB);
+
+  // Krav langs kikkerten
+  let req = -Infinity, reqAt = null, reqMin = -Infinity;
+  for (let l=0; l<=lEnd; l+=0.5){
+    const x = l+off, o = obst(x); if (!o) continue;
+    const base = rUnder(l) - s.t/2 - bAt(x) + o.y;
+    const T = o.kind==='barrel' ? s.gapTarget : s.clr;
+    if (T+base > req){ req = T+base; reqAt = { l, x, kind:o.kind }; }
+    reqMin = Math.max(reqMin, s.clr+base);
+  }
+  const Hrec = reqAt ? Math.ceil(Math.max(0,req)*2)/2 : 0;
+  const Hmin = reqAt ? Math.max(0, reqMin) : 0;
+  if (s.follow) s.Hsel = Hrec;
+  const H = s.Hsel;
+  const cAt = x => bAt(x) + H + s.t/2;                  // senterlinje kikkert ved global x
+
+  // Klaring med valgt høyde
+  let gapB = Infinity, gapBAt = null, gapR = Infinity, gapRAt = null, crit = Infinity, critAt = null;
+  for (let l=0; l<=lEnd; l+=0.5){
+    const x = l+off, o = obst(x); if (!o) continue;
+    const cl = cAt(x) - rUnder(l) - o.y;
+    const T = o.kind==='barrel' ? s.gapTarget : s.clr;
+    if (o.kind==='barrel'){ if (cl<gapB){ gapB=cl; gapBAt={l,x,y:o.y}; } }
+    else if (cl<gapR){ gapR=cl; gapRAt={l,x,y:o.y,kind:o.kind}; }
+    if (cl-T < crit){ crit = cl-T; critAt = { l, x, y:o.y, kind:o.kind, cl }; }
+  }
+
+  // Ringer
+  const w = s.ringW;
+  const mLo = s.pic ? railRear : -s.Lr, mHi = s.pic ? railFront : 0;
+  const place = (tLo, tHi) => {
+    const cen = (tLo+tHi)/2 + off;
+    const lo = Math.max(tLo+off+w/2, mLo+w/2), hi = Math.min(tHi+off-w/2, mHi-w/2);
+    return lo<=hi ? clamp(cen, lo, hi) : clamp(cen, mLo+w/2, mHi-w/2);
+  };
+  if (s.autoRings){ s.ringR = Math.round(place(x2,x3)); s.ringF = Math.round(place(x4,x5)); }
+  const ringInfo = xr => {
+    const l = xr - off;
+    const onTube = (l-w/2>=x2-0.01 && l+w/2<=x3+0.01) || (l-w/2>=x4-0.01 && l+w/2<=x5+0.01);
+    const onMount = xr-w/2>=mLo-0.01 && xr+w/2<=mHi+0.01;
+    return { x:xr, l, onTube, onMount, ok:onTube&&onMount };
+  };
+  const rings = [ringInfo(s.ringR), ringInfo(s.ringF)];
+
+  // Status
+  const minC = Math.min(gapB, gapR);
+  let st='ok', stTxt='OK';
+  if (minC <= 0) { st='bad'; stTxt='Kollisjon'; }
+  else if (minC < s.clr - 0.01) { st='bad'; stTxt='For tett'; }
+  else if (gapB < s.gapTarget - 0.01) { st='warn'; stTxt='Under ønsket gap'; }
+  else if (gapB !== Infinity && gapB > s.gapTarget + 10) { st='info'; stTxt='Høyere enn nødvendig'; }
+
+  const tmX = tmL + off;
+  return { D, yA, X, off, tmL, rUnder, rBase, barD, obst, bAt, cAt, slope, railRear, railFront, mLo, mHi, sectIdx, hasCap,
+    Hrec, Hmin, reqAt, H, c:cAt(tmX), gapB, gapBAt, gapR, gapRAt, critAt, sight: cAt(tmX) - yA,
+    ocLen, tubeLen: s.front+s.turret+s.rear, rings, st, stTxt };
+}
+
+/* ---------- Tegnehjelp ---------- */
+function dimV(x, y1, y2, label, side, cls, hl, small){
+  const lo = Math.max(y1,y2), hi = Math.min(y1,y2), t = 6;
+  const c = cls ? `class="${cls}"` : 'class="s-dim"';
+  const sw = cls ? `stroke-width="${hl?2:1.2}"` : '';
+  let s = '';
+  if (hl && lo-hi>0.5) s += `<rect ${c} x="${x-5}" y="${hi}" width="10" height="${lo-hi}" opacity=".22" stroke="none"/>`;
+  s += `<path ${c} ${sw} d="M${x-t} ${y1}H${x+t}M${x-t} ${y2}H${x+t}M${x} ${y1}V${y2}" style="fill:none"/>`;
+  const tx = side==='right' ? x+10 : x-10;
+  s += `<text class="s-txt" x="${tx}" y="${(y1+y2)/2+4}" text-anchor="${side==='right'?'start':'end'}" ${small?'style="font-size:11px"':''}>${label}</text>`;
+  return s;
+}
+
+/* ---------- Sidevisning ---------- */
+function drawSide(m){
+  const s = state, v = s.vex, X = m.X, off = m.off, yA = m.yA;
+  const G = l => l + off, cA = m.cAt, bA = m.bAt;
+  const turH = s.t*0.75;
+  const cMax = Math.max(cA(G(0)), cA(G(X.x7)));
+  const top = Math.max(cMax + Math.max(s.O, s.E)/2, cMax + s.t/2 + turH, m.hasCap ? cMax + s.capD*0.95 + 4 : 0) + 6;
+  const bot = Math.min(-42, yA - s.S/2) - 16;
+  const xMin = Math.min(-s.Lr, G(0), s.pic ? m.railRear : 0) - 25;
+  const xMax = Math.max(G(Math.max(X.x7, X.capB)), 40) + 140;
+  const W = 1000, k = W/(xMax-xMin), padT = 26, padB = 34;
+  const Hpx = (top-bot)*v*k + padT + padB;
+  const px = x => (x-xMin)*k, py = y => padT + (top-y)*v*k;
+  const P = pts => pts.map(p=>`${px(p[0]).toFixed(1)},${py(p[1]).toFixed(1)}`).join(' ');
+  // punkt på kikkerten: lokal l, høyde dy over/under senterlinjen
+  const S = (l, dy) => { const x = G(l); return [x, cA(x) + dy]; };
+  sideGeom = { k, W };
+  let g = '';
+
+  // Pipe
+  const xe = xMax - 6, xs = [0, s.shank, s.shank+s.taper, xe].filter(x=>x<=xe).sort((a,b)=>a-b);
+  const topP = xs.map(x=>[x, yA + m.barD(x)/2]), botP = xs.slice().reverse().map(x=>[x, yA - m.barD(x)/2]);
+  g += `<polygon class="s-steel" points="${P(topP.concat(botP))}"/>`;
+  g += `<line class="s-axis" x1="${px(-s.Lr)}" y1="${py(yA)}" x2="${px(xe)}" y2="${py(yA)}"/>`;
+  g += `<text class="s-sub" x="${px(xe)-4}" y="${py(yA)-6}" text-anchor="end">løpsakse</text>`;
+
+  // Låskasse og skinne (med helning)
+  g += `<rect class="s-recv" x="${px(-s.Lr)}" y="${py(0)}" width="${s.Lr*k}" height="${py(-42)-py(0)}" rx="6"/>`;
+  g += `<text class="s-sub" x="${px(-s.Lr)+10}" y="${py(-42)-8}">Låskasse</text>`;
+  if (s.pic){
+    const rr = m.railRear, rf = m.railFront, yb = Math.min(0, rr<0 ? 0 : -3);
+    g += `<polygon class="s-rail" points="${P([[rr,0],[rr,bA(rr)],[rf,bA(rf)],[rf,0]])}"/>`;
+    const nd = Math.min(...[s.railH*0.55, 2.5]);
+    for (let x=rr+5; x<rf-6; x+=10.01)
+      g += `<rect class="s-recv" x="${px(x)}" y="${py(bA(x))}" width="${(5.3*k).toFixed(1)}" height="${(nd*v*k).toFixed(1)}" opacity=".55"/>`;
+    if (s.railOver>0) g += `<rect class="s-rail" x="${px(Math.max(0,rr))}" y="${py(0)}" width="${(rf-Math.max(0,rr))*k}" height="${py(-3)-py(0)}" opacity=".6"/>`;
+    if (s.railTilt>0) g += `<text class="s-sub" x="${px(rr)+6}" y="${py(bA(rr))-6}">${s.railTilt} MOA</text>`;
+  }
+
+  // Kikkert (dras)
+  const r = d => d/2;
+  const prof = [[0,r(s.E)],[X.x1,r(s.E)],[X.x2,r(s.t)],[X.x5,r(s.t)],[X.x6,r(s.O)],[X.x7,r(s.O)]];
+  const body = prof.map(p=>S(p[0], p[1])).concat(prof.slice().reverse().map(p=>S(p[0], -p[1])));
+  let sc = `<polygon class="s-scope" points="${P(body)}"/>`;
+  const tw = Math.min(s.turret*0.7, 42), tA = m.tmL - tw/2, tB = m.tmL + tw/2;
+  sc += `<polygon class="s-scope" points="${P([S(tA, r(s.t)+turH), S(tB, r(s.t)+turH), S(tB, 0), S(tA, 0)])}"/>`;
+  sc += `<polygon class="s-scope-hi" points="${P([S(tA, r(s.t)+turH), S(tB, r(s.t)+turH), S(tB, r(s.t)+turH*0.75), S(tA, r(s.t)+turH*0.75)])}"/>`;
+  sc += `<polygon class="s-scope-hi" opacity=".5" points="${P([S(X.x3, r(s.t)), S(X.x4, r(s.t)), S(X.x4, -r(s.t)), S(X.x3, -r(s.t))])}"/>`;
+  const tc = S(m.tmL, 0);
+  sc += `<ellipse class="s-scope-hi" cx="${px(tc[0])}" cy="${py(tc[1])}" rx="${(s.t*0.42*k).toFixed(1)}" ry="${(s.t*0.42*k*v).toFixed(1)}"/>`;
+  if (s.u>0) sc += `<polygon class="s-scope" points="${P([S(X.x3, -r(s.t)), S(X.x4, -r(s.t)), S(X.x4, -r(s.t)-s.u), S(X.x3, -r(s.t)-s.u)])}"/>`;
+  sc += `<polygon class="s-glass" points="${P([S(X.x7-1.2, r(s.O)-3), S(X.x7, r(s.O)-3), S(X.x7, -r(s.O)+3), S(X.x7-1.2, -r(s.O)+3)])}"/>`;
+  sc += `<polygon class="s-glass" points="${P([S(0, r(s.E)-3), S(1.2, r(s.E)-3), S(1.2, -r(s.E)+3), S(0, -r(s.E)+3)])}"/>`;
+  if (m.hasCap){
+    const cd = r(s.capD), lid = s.capD*0.45;
+    sc += `<polygon class="s-cap" points="${P([S(X.capA, cd), S(X.capB, cd), S(X.capB, -cd), S(X.capA, -cd)])}"/>`;
+    sc += `<polygon class="s-cap" opacity=".85" points="${P([S(X.capB-3, cd), S(X.capB, cd), S(X.capB+6, cd+lid), S(X.capB+3, cd+lid)])}"/>`;
+  }
+  g += `<g data-drag="scopePos">${sc}</g>`;
+  const a0 = S(-20, 0), a1 = S(Math.max(X.x7, X.capB)+25, 0);
+  g += `<line class="s-axis" x1="${px(a0[0])}" y1="${py(a0[1])}" x2="${px(a1[0])}" y2="${py(a1[1])}" pointer-events="none"/>`;
+
+  if (m.gapBAt && m.gapB < 0) g += `<polygon points="${P(topP.concat(botP))}" class="st-bad" style="fill:none" stroke-width="1.5" stroke-dasharray="5 3" pointer-events="none"/>`;
+  // Ringer (dras)
+  m.rings.forEach((ri, i)=>{
+    const x = ri.x, w = s.ringW, bw = w + 10, cls = ri.ok ? 's-ring' : 's-ring-bad';
+    const yb = bA(x), yt = cA(x) + r(s.t) + 3;
+    g += `<g data-drag="${i===0?'ringR':'ringF'}">`;
+    g += `<rect class="${cls}" x="${px(x-w/2)}" y="${py(yt)}" width="${w*k}" height="${py(yb)-py(yt)}" rx="${(4*k).toFixed(1)}"/>`;
+    g += `<rect class="${cls}" x="${px(x-bw/2)}" y="${py(yb+5)}" width="${bw*k}" height="${py(yb)-py(yb+5)}" rx="2"/>`;
+    g += `<line stroke="var(--panel)" stroke-opacity=".5" x1="${px(x-w/2)}" x2="${px(x+w/2)}" y1="${py(cA(x))}" y2="${py(cA(x))}"/></g>`;
+  });
+
+  // Mål
+  const rf = m.rings[1].x;
+  g += dimV(px(rf + s.ringW/2 + 8), py(bA(rf)), py(cA(rf)-r(s.t)), `H ${fmt(m.H)} mm`, 'right', '');
+  if (m.gapBAt) g += dimV(px(m.gapBAt.x), py(m.gapBAt.y), py(cA(m.gapBAt.x) - m.rUnder(m.gapBAt.l)), `Gap ${fmt(m.gapB)} mm${m.sectIdx(m.gapBAt.l)===7?' (deksel)':''}`, 'right', 'st-'+(m.gapB<=0?'bad':m.gapB<s.clr?'bad':m.gapB<s.gapTarget-0.01?'warn':'ok'), true);
+  if (m.gapRAt && m.gapR < 15) g += dimV(px(m.gapRAt.x), py(m.gapRAt.y), py(cA(m.gapRAt.x) - m.rUnder(m.gapRAt.l)), `${fmt(m.gapR)}`, 'left', m.gapR<s.clr-0.01?'st-bad':'', true, true);
+
+  // Linjal
+  const yR = Hpx - 16;
+  g += `<line class="s-tick" x1="${px(xMin+10)}" x2="${px(xMax-10)}" y1="${yR}" y2="${yR}"/>`;
+  for (let x=Math.ceil((xMin+10)/50)*50; x<=xMax-10; x+=50){
+    const big = x%100===0;
+    g += `<line class="s-tick" x1="${px(x)}" x2="${px(x)}" y1="${yR}" y2="${yR-(big?7:4)}"/>`;
+    if (big) g += `<text class="s-sub" x="${px(x)}" y="${yR+13}" text-anchor="middle">${x}</text>`;
+  }
+  g += `<line class="s-axis" x1="${px(0)}" x2="${px(0)}" y1="${py(0)}" y2="${yR}" style="stroke-dasharray:2 4" pointer-events="none"/>`;
+  const lo = S(X.x7, r(s.O)), lc = S(0, r(s.E));
+  g += `<text class="s-sub" x="${px(lo[0])}" y="${py(lo[1])-8}" text-anchor="end">Objektiv</text>`;
+  if (m.hasCap){ const lc2 = S(X.capB+6, r(s.capD)+s.capD*0.45); g += `<text class="s-sub" x="${px(lc2[0])+6}" y="${py(lc2[1])+10}" style="fill:var(--cap)">Linsedeksel</text>`; }
+  g += `<text class="s-sub" x="${px(lc[0])}" y="${py(lc[1])-8}">Okular</text>`;
+
+  const svg = $('#side');
+  svg.setAttribute('viewBox', `0 0 ${W} ${Hpx.toFixed(0)}`);
+  svg.innerHTML = g;
+}
+
+/* Dra kikkert og ringer i tegningen */
+(() => {
+  const svg = $('#side'); let drag = null;
+  svg.addEventListener('pointerdown', e=>{
+    const t = e.target.closest('[data-drag]'); if (!t || !sideGeom) return;
+    drag = { key:t.dataset.drag, x0:e.clientX, v0:state[t.dataset.drag] };
+    svg.setPointerCapture(e.pointerId); e.preventDefault();
+  });
+  svg.addEventListener('pointermove', e=>{
+    if (!drag) return;
+    const scale = sideGeom.W / svg.getBoundingClientRect().width;
+    state[drag.key] = Math.round(drag.v0 + (e.clientX - drag.x0)*scale/sideGeom.k);
+    if (drag.key!=='scopePos') state.autoRings = false;
+    render();
+  });
+  const end = () => { drag = null; };
+  svg.addEventListener('pointerup', end); svg.addEventListener('pointercancel', end);
+})();
+
+/* ---------- Snitt ---------- */
+function drawFront(m){
+  const s = state, yA = m.yA;
+  const ca = m.critAt;
+  const W = 440, Hp = 440;
+  if (!ca){ $('#front').setAttribute('viewBox',`0 0 ${W} 60`); $('#front').innerHTML = `<text class="s-sub" x="10" y="30">Kikkerten er ikke over låskasse eller pipe.</text>`; $('#frontSub').textContent=''; return; }
+  const c = m.cAt(ca.x), b = m.bAt(ca.x);
+  const si = m.sectIdx(ca.l), rU = m.rUnder(ca.l), inTurret = si===3;
+  const rO = inTurret ? s.t/2 : rU, rObj = m.rBase(ca.l);
+  const overBarrel = ca.x > 0, dB = overBarrel ? m.barD(ca.x) : s.S;
+  const onRail = s.pic && ca.x>=m.railRear && ca.x<=m.railFront;
+  const top = c + Math.max(rO, s.t/2+4) + 8, bot = -50;
+  const halfW = Math.max(rO, 30) + 40;
+  const k = Math.min(W/(2*halfW), (Hp-20)/(top-bot));
+  const cx = W/2, padT = 10;
+  const px = x => cx + x*k, py = y => padT + (top-y)*k, R = d => d/2*k;
+  let g = '';
+  g += `<rect class="s-recv" x="${px(-17)}" y="${py(0)}" width="${34*k}" height="${py(-48)-py(0)}" rx="${4*k}" opacity="${ca.kind==='barrel'?'.35':'1'}"/>`;
+  if (s.pic) g += `<rect class="s-rail" x="${px(-10.5)}" y="${py(b)}" width="${21*k}" height="${py(0)-py(b)}" opacity="${onRail?1:.45}"/>`;
+  g += `<rect class="s-ring" x="${px(-(s.t/2+5))}" y="${py(c)}" width="${(s.t+10)*k}" height="${py(b)-py(c)}" rx="${2*k}" opacity=".35"/>`;
+  g += `<circle class="s-ring" cx="${px(0)}" cy="${py(c)}" r="${R(s.t+8)}" opacity=".35"/>`;
+  if (overBarrel){
+    g += `<circle class="s-steel" cx="${px(0)}" cy="${py(yA)}" r="${R(dB)}"/>`;
+    g += `<circle class="s-steel-dk" cx="${px(0)}" cy="${py(yA)}" r="${R(7.6)}"/>`;
+  } else g += `<circle class="s-outline" cx="${px(0)}" cy="${py(yA)}" r="${R(s.S)}"/>`;
+  if (inTurret && s.u>0) g += `<rect class="s-scope" x="${px(-s.t*0.4)}" y="${py(c)}" width="${s.t*0.8*k}" height="${py(c-rU)-py(c)}" rx="3"/>`;
+  if (si===7) g += `<circle class="s-cap" cx="${px(0)}" cy="${py(c)}" r="${R(2*rO)}"/>`;
+  g += `<circle class="s-scope" cx="${px(0)}" cy="${py(c)}" r="${R(2*(si===7 ? (rObj||s.O/2) : rO))}" fill-opacity=".92"/>`;
+  if (rO > s.t/2+2) g += `<circle class="s-glass" cx="${px(0)}" cy="${py(c)}" r="${R(2*Math.min(rO, s.O/2)-7)}"/>`;
+  g += `<circle class="s-outline" cx="${px(0)}" cy="${py(c)}" r="${R(s.t)}" style="stroke:#fff;opacity:.6"/>`;
+  if (overBarrel && ca.cl < 0) g += `<circle cx="${px(0)}" cy="${py(yA)}" r="${R(dB)}" fill="none" class="st-bad" stroke-width="2" stroke-dasharray="5 3" style="fill:none"/>`;
+  g += `<line class="s-axis" x1="${px(-halfW+6)}" x2="${px(halfW-6)}" y1="${py(0)}" y2="${py(0)}"/>`;
+  g += `<text class="s-sub" x="${px(halfW-6)}" y="${py(0)+14}" text-anchor="end">topp låskasse</text>`;
+
+  const xr = px(Math.max(rO, s.t/2+9) + 8);
+  g += dimV(xr, py(b), py(c - s.t/2), `H ${fmt(m.H)} mm`, 'right', '');
+  g += `<line class="s-axis" x1="${px(0)}" x2="${xr+6}" y1="${py(c-s.t/2)}" y2="${py(c-s.t/2)}" style="stroke-dasharray:2 3"/>`;
+  const cl = ca.cl, T = ca.kind==='barrel' ? s.gapTarget : s.clr;
+  const cls = cl<=0||cl<s.clr-0.01 ? 'st-bad' : cl<T-0.01 ? 'st-warn' : 'st-ok';
+  g += dimV(px(0), py(ca.y), py(c - rU), `${fmt(cl)} mm`, 'right', cls, true);
+  const xl = px(-Math.max(rO, 26) - 10);
+  g += dimV(xl, py(yA), py(c), `${fmt(c - yA)} mm`, 'left', '');
+  g += `<text class="s-sub" x="${xl-10}" y="${(py(yA)+py(c))/2+18}" text-anchor="end">senter–senter</text>`;
+  g += `<line class="s-axis" x1="${xl-6}" x2="${px(0)}" y1="${py(yA)}" y2="${py(yA)}" style="stroke-dasharray:2 3"/>`;
+  g += `<line class="s-axis" x1="${xl-6}" x2="${px(0)}" y1="${py(c)}" y2="${py(c)}" style="stroke-dasharray:2 3"/>`;
+
+  const nm = SECT[si].replace('tårnpartiet', s.u>0?'tårn-underbygget':'tårnpartiet');
+  $('#frontSub').textContent = `x = ${fmt0(ca.x)} mm: ${nm[0].toUpperCase()+nm.slice(1)} mot ${KIND[ca.kind]}`;
+  const svg = $('#front');
+  svg.setAttribute('viewBox', `0 0 ${W} ${Hp}`);
+  svg.innerHTML = g;
+}
+
+/* ---------- Render ---------- */
+function render(active){
+  const m = compute();
+  const s = state;
+  const pr = [-s.Lr-200, 200];
+  $('#posRange').min = pr[0]; $('#posRange').max = pr[1];
+  [$('#rrRange'), $('#rfRange')].forEach(el=>{ el.min = -s.Lr-100; el.max = 150; });
+  $('#hRange').max = Math.max(40, Math.ceil(m.Hrec+15));
+  syncInputs(active);
+
+  $('#dTube').textContent = fmt(m.tubeLen)+' mm';
+  $('#dOc').textContent = fmt(m.ocLen)+' mm';
+  $('#rRec').textContent = fmt(m.Hrec);
+  $('#rRecSub').textContent = `Til senter rør: ${fmt(m.Hrec + s.t/2)} mm · ${(m.Hrec/25.4).toFixed(3)}″`;
+  $('#rMin').textContent = fmt(m.Hmin);
+  $('#rMinSub').textContent = `Gir ${fmt(s.clr)} mm minste klaring`;
+  $('#rGap').textContent = m.gapBAt ? fmt(m.gapB) : '–';
+  const st = $('#rStatus'); st.className = 'badge b-'+m.st; st.textContent = m.stTxt;
+  $('#rRecvClr').textContent = m.gapRAt ? `Låskasse/skinne: ${fmt(m.gapR)} mm` : '';
+  $('#rSight').textContent = fmt(m.sight);
+  $('#ringSpan').textContent = `Ringavstand: ${fmt0(m.rings[1].x - m.rings[0].x)} mm`;
+
+  if (m.reqAt){
+    const nm = SECT[m.sectIdx(m.reqAt.l)].replace('tårnpartiet', s.u>0?'tårn-underbygget':'tårnpartiet');
+    $('#govern').innerHTML = `Det er <b>${nm} mot ${KIND[m.reqAt.kind]}</b> (x = ${fmt0(m.reqAt.x)} mm) som bestemmer høyden nå.` +
+      (m.reqAt.kind==='barrel' && m.reqAt.x < s.shank + s.taper ? ' Pipa er fortsatt tykk her. Flytter du kikkerten fram, kan du ofte gå ned i høyde.' : '');
+  } else $('#govern').textContent = 'Kikkerten er ikke over låskasse eller pipe.';
+  if (s.pic && s.railTilt>0) $('#govern').innerHTML += ` Skråskinnen (${s.railTilt} MOA) senker kikkerten ${fmt(m.slope*100)} mm per 100 mm framover, og siktehøyden er målt ved tårnet.`;
+
+  const w = [];
+  if (m.ocLen < 0) w.push(['bad', `Lengdene summerer til mer enn totallengden (${fmt(-m.ocLen)} mm for mye). Sjekk målene.`]);
+  if (s.O < s.t) w.push(['bad', 'Objektivdiameteren er mindre enn rørdiameteren.']);
+  if (m.D > s.S) w.push(['warn', 'Pipeprofilen er tykkere enn pipa ved låskassen. Øk «Pipe Ø ved låskasse».']);
+  if (m.gapBAt && m.gapB <= 0) w.push(['bad', `${m.sectIdx(m.gapBAt.l)===7 ? 'Linsedekselet' : 'Kikkerten'} treffer pipa ved x = ${fmt0(m.gapBAt.x)} mm (${fmt(m.gapB)} mm).`]);
+  else if (m.gapBAt && m.gapB < s.clr - 0.01) w.push(['bad', `${m.sectIdx(m.gapBAt.l)===7 ? 'Linsedekselet' : 'Kikkerten'} har bare ${fmt(m.gapB)} mm til pipa ved x = ${fmt0(m.gapBAt.x)} mm.`]);
+  if (m.hasCap && s.capD < s.O) w.push(['warn', 'Linsedekselets ytre Ø er mindre enn objektivets. Det passer ikke utenpå.']);
+  if (m.gapRAt && m.gapR < s.clr - 0.01) w.push(['bad', `Bare ${fmt(m.gapR)} mm klaring til ${KIND[m.gapRAt.kind]} ved x = ${fmt0(m.gapRAt.x)} mm.`]);
+  m.rings.forEach((r,i)=>{
+    const n = i===0 ? 'Bakre ring' : 'Fremre ring';
+    if (!r.onTube) w.push(['bad', `${n} står ikke på et rett rørparti (står på kon, tårn eller utenfor kikkerten).`]);
+    if (!r.onMount) w.push(['bad', `${n} står utenfor ${s.pic ? 'picatinny-skinnen' : 'låskassen'}.`]);
+  });
+  if (Math.abs(m.rings[1].x - m.rings[0].x) < s.ringW) w.push(['bad', 'Ringene overlapper.']);
+  if (!s.follow && m.H < m.Hrec && m.gapB > 0) w.push(['warn', `Valgt høyde er ${fmt(m.Hrec - m.H)} mm under anbefalt.`]);
+  $('#warns').innerHTML = w.length ? w.map(([c,t])=>`<li class="${c==='bad'?'bad':''}">${t}</li>`).join('')
+    : `<li class="ok">Ingen kollisjoner, og ringene står riktig.</li>`;
+
+  $('#capLegend').style.display = m.hasCap ? '' : 'none';
+  drawSide(m);
+  drawFront(m);
+}
+render();
+}
+</script>
+</body>
+</html>
